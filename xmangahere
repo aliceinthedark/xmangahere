@@ -1,0 +1,23 @@
+#!/usr/bin/sh
+
+SEARCH=$(rofi -dmenu -lines 0)
+
+echo "Searching for $SEARCH..."
+
+RESULTS=$(./search.py "$SEARCH")
+
+TITLE=$(echo $RESULTS | tr ' ' '\n' | rofi -dmenu)
+
+echo "Loading volumes for $TITLE..."
+
+VOLUMES=$(./loadvolumes.py $TITLE)
+
+VOLUME=$(echo $VOLUMES | tr ' ' '\n' | rofi -dmenu)
+
+echo "Loading page links for $VOLUME..."
+
+PAGES=$(./loadpages.py "$VOLUME")
+
+echo "Page links are loaded. Oppening a viewer..."
+
+feh $PAGES
