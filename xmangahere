@@ -2,11 +2,21 @@
 
 SEARCH=$(rofi -dmenu -lines 0)
 
+if [ -z "$SEARCH" ]; then
+    echo "Nothing to search here..."
+    exit 1
+fi
+
 echo "Searching for $SEARCH..."
 
 RESULTS=$(./search.py "$SEARCH")
 
 TITLE=$(echo $RESULTS | tr ' ' '\n' | rofi -dmenu)
+
+if [ -z "$TITLE" ]; then
+    echo "Nothing to search here..."
+    exit 1
+fi
 
 echo "Loading volumes for $TITLE..."
 

@@ -6,6 +6,9 @@ from bs4 import NavigableString, Tag
 from urllib.request import Request, urlopen
 from urllib.parse import urlencode
 
+if len(sys.argv[1]) == 0:
+    sys.exit(1)
+
 search_request = Request(
     'http://www.mangahere.cc/search.php?' + urlencode({'name': sys.argv[1]}),
     data=None,
