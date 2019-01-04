@@ -5,8 +5,12 @@ A client for mangahere.cc.
 # Dependencies
 
 ** Python 3
+
 ** BeautifulSoup4
+
 ** Rofi
+
+** Feh
 
 # Running
 
