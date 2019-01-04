@@ -29,4 +29,4 @@ for result in bs.find_all('div', {'class': 'detail_list'})[0].find_all('ul')[0]:
         span = result.find_all('span', {'class': 'left'})[0]
         if type(span) is not NavigableString:
             link = span.a['href']
-            print(extract_title_from_link(link))
+            print(extract_title_from_link(link), sep='\n')

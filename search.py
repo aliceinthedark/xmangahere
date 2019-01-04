@@ -29,4 +29,4 @@ def extract_title_from_link(link):
 for result in bs.find_all('div', {'class': 'result_search'})[0]:
     if type(result) is not NavigableString and result.dt is not None:
         link = result.dt.a['href']
-        print(extract_title_from_link(link))
+        print(extract_title_from_link(link), sep='\n')

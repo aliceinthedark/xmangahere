@@ -1,2 +1,6 @@
 # Emacs
 *~
+
+*.patch
+*.orig
+*.rej
