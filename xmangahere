@@ -1,4 +1,16 @@
-#!/usr/bin/sh
+#!/bin/sh -e
+#
+# This file is part of xmangahere project.
+#
+# Copyright (C) 2019 aliceinthedark <don't @ me>
+# All Rights Reserved
+# 
+# This program is free software. It comes without any warranty, to
+# the extent permitted by applicable law. You can redistribute it
+# and/or modify it under the terms of the Do What The Fuck You Want
+# To Public License, Version 2, as published by Sam Hocevar. See
+# LICENSE.md for more details.
+#
 
 query="$*"
 [ "$query" ] || query=$(rofi -dmenu -lines 0)
@@ -23,8 +35,12 @@ volume=$(./loadvolumes.py $title | rofi -dmenu)
 
 echo "Loading page links for $volume..."
 
-pages=$(./loadpages.py "$volume")
+page_links=$(./loadpages.py "$volume" | tr '\n' ' ')
 
-echo "Page links are loaded. Oppening a viewer..."
+echo "Page links are loaded. Saving images..."
+
+pages=$(./saveimages.py "$page_links")
+
+echo "Oppening a viewer..."
 
 feh -. $pages

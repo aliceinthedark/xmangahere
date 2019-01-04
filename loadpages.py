@@ -1,12 +1,43 @@
 #!/usr/bin/env python
+#
+# This file is part of xmangahere project.
+#
+# Copyright (C) 2019 aliceinthedark <don't @ me>
+# All Rights Reserved
+# 
+# This program is free software. It comes without any warranty, to
+# the extent permitted by applicable law. You can redistribute it
+# and/or modify it under the terms of the Do What The Fuck You Want
+# To Public License, Version 2, as published by Sam Hocevar. See
+# LICENSE.md for more details.
+#
 
-# a_bias_girl/v01/c004/
-
+import os
+import os.path
 import sys
 from bs4 import BeautifulSoup as BS
 from bs4 import NavigableString, Tag
 from urllib.request import Request, urlopen
 from urllib.parse import urlencode
+from base64 import b32decode, b32encode
+
+def get_cached_path(link: str) -> str:
+    return CACHE_DIR + b32encode(link.encode('utf-8')).decode('utf-8')
+
+HOME_DIR = os.path.expanduser('~')
+CACHE_DIR = HOME_DIR + '/.xmanga/cache/'
+LINK = 'http://www.mangahere.cc/manga/' + sys.argv[1] + '/'
+CACHED_PATH = get_cached_path(LINK)
+
+if not os.path.exists(CACHE_DIR):
+    os.makedirs(CACHE_DIR)
+
+# Print cached data if already saved.
+if os.path.exists(CACHED_PATH):
+    with open(CACHED_PATH) as f:
+        sys.stdout.write(f.read())
+        sys.stdout.flush()
+    sys.exit(0)
 
 def extract_next_page_link(link: str) -> str:
     # link has a format of (as of 2019/01/03):
@@ -37,5 +68,11 @@ def get_image_links():
         if type(img) is Tag:
             yield img['src']
 
-for link in get_image_links():
+links = list(get_image_links())
+
+# Save links in cache.
+with open(CACHED_PATH, 'w') as f:
+    f.write('\n'.join(links))
+
+for link in links:
     print(link)
