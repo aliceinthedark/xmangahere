@@ -54,5 +54,5 @@ if not os.path.exists(IMAGE_DIR):
 
 images = [load_image(link) for link in sys.argv[1].split(' ') if link != '']
 
-for path in images:
-    print(path, sep='\n')
+with sys.stdout as stdout:
+    stdout.write('\n'.join(images))

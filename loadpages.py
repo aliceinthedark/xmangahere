@@ -74,5 +74,4 @@ links = list(get_image_links())
 with open(CACHED_PATH, 'w') as f:
     f.write('\n'.join(links))
 
-for link in links:
-    print(link)
+print('\n'.join(links), sep='')

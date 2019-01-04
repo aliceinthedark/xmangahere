@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/usr/bin/env python
 #
 # This file is part of xmangahere project.
 #
@@ -12,35 +12,64 @@
 # LICENSE.md for more details.
 #
 
-query="$*"
-[ "$query" ] || query=$(rofi -dmenu -lines 0)
+from typing import NoReturn
 
-if [ -z "$query" ]; then
-    echo "Nothing to search here..."
-    exit 1
-fi
+from subprocess import Popen, PIPE
 
-echo "Searching for $query..."
+def get_search_query_menu() -> str:
+    with Popen(['rofi', '-dmenu', '-lines', '0'], stdout=PIPE) as p:
+        return p.stdout.read().decode('utf-8').replace('\n', '')
 
-title=$(./search.py "$query" | rofi -dmenu)
+def get_matching_titles(query: str) -> [str]:
+    with Popen(['./search.py', query], stdout=PIPE) as p:
+        return p.stdout.read().decode('utf-8').split('\n')
 
-if [ -z "$title" ]; then
-    echo "Nothing to search here..."
-    exit 1
-fi
+def get_selected_title_menu(titles: [str]) -> str:
+    with Popen(['rofi', '-dmenu'], stdout=PIPE, stdin=PIPE) as menu:
+        with menu.stdin:
+            menu.stdin.write('\n'.join(titles).encode('utf-8'))
+        return menu.stdout.read().decode('utf-8').replace('\n', '')
 
-echo "Loading volumes for $title..."
+def get_volumes(title: str) -> [str]:
+    with Popen(['./loadvolumes.py', title], stdout=PIPE) as p:
+        return p.stdout.read().decode('utf-8').split('\n')
 
-volume=$(./loadvolumes.py $title | rofi -dmenu)
+def get_selected_volume_menu(volumes: [str]) -> str:
+    with Popen(['rofi', '-dmenu'], stdout=PIPE, stdin=PIPE) as menu:
+        with menu.stdin:
+            menu.stdin.write('\n'.join(volumes).encode('utf-8'))
+        return menu.stdout.read().decode('utf-8').replace('\n', '')
 
-echo "Loading page links for $volume..."
+def get_page_links(volume: str) -> [str]:
+    with Popen(['./loadpages.py', volume], stdout=PIPE) as p:
+        return p.stdout.read().decode('utf-8').split('\n')
 
-page_links=$(./loadpages.py "$volume" | tr '\n' ' ')
+def get_saved_images(links: [str]) -> [str]:
+    with Popen(['./saveimages.py', ' '.join(links)], stdout=PIPE) as p:
+        return p.stdout.read().decode('utf-8').split('\n')
 
-echo "Page links are loaded. Saving images..."
+def show_viewer(images: [str]) -> NoReturn:
+    with Popen(['feh', '-.', *images]) as feh:
+        return feh.returncode
 
-pages=$(./saveimages.py "$page_links")
+def main() -> NoReturn:
+    while True:
+        query = get_search_query_menu()
+        if query == '':
+            break
+        titles = get_matching_titles(query)
+        while True:
+            title = get_selected_title_menu(titles)
+            if title == '':
+                break
+            volumes = get_volumes(title)
+            while True:
+                volume = get_selected_volume_menu(volumes)
+                if volume == '':
+                    break
+                page_links = get_page_links(volume)
+                images = get_saved_images(page_links)
+                show_viewer(images)
 
-echo "Oppening a viewer..."
-
-feh -. $pages
+if __name__ == '__main__':
+    main()
