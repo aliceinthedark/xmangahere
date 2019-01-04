@@ -30,4 +30,4 @@ PAGES=$(./loadpages.py "$VOLUME")
 
 echo "Page links are loaded. Oppening a viewer..."
 
-feh $PAGES
+feh -. $PAGES
