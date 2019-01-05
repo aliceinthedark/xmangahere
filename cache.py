@@ -94,8 +94,6 @@ def _load_image(link: str) -> str:
     return saved_path
 
 def _save_images(links: [str]) -> [str]:
-    if not os.path.exists(IMAGE_DIR):
-        os.makedirs(IMAGE_DIR)
     images = [_load_image(link) for link in links]
     return images
 

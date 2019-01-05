@@ -12,26 +12,35 @@
 # LICENSE for more details.
 #
 
+import sys
+
 # Current back-end for query menu.
 import rofi
 # Current back-end for manga downloads.
 import mangahere
+import cachedbrowser
 # Current page viewer.
 import feh
 
 from typing import NoReturn
 
-# cache browsing mode:
-# cached = [b32decode(x.encode('utf-8')).decode('utf-8') for x in os.listdir(CACHE_DIR)]
-# cached_with_l = [(len([y for y in x.split('/') if y != '']), x) for x in cached]
-#  -> [(l, x)], where x is a chapter list if l = 4 and is a page link list if l = 5 or 6
+CACHED_MODE = False
 
 def main() -> NoReturn:
+    global CACHED_MODE
+    if len(sys.argv) == 2 and sys.argv[1] == 'cache':
+        CACHED_MODE = True
     menu = rofi
-    manga = mangahere
+    manga = None
+    if CACHED_MODE:
+        manga = cachedbrowser
+    else:
+        manga = mangahere
     viewer = feh
     while True:
-        query = menu.search_query()
+        query = 'cached'
+        if not CACHED_MODE:
+            query = menu.search_query()
         if query == '':
             break
         print("Searching for " + query + "...")
@@ -50,6 +59,8 @@ def main() -> NoReturn:
                 images = manga.pages(volume)
                 print("Done.")
                 viewer.show(images)
+        if CACHED_MODE:
+            break
 
 if __name__ == '__main__':
     main()
