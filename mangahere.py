@@ -12,7 +12,7 @@
 # LICENSE.md for more details.
 #
 
-from typing import Generator
+from typing import Generator, Tuple
 
 import os
 import os.path
@@ -93,7 +93,26 @@ def _extract_next_page_link(link: str) -> str:
     # `//www.mangahere.cc/manga/title/`
     return link.replace('//www.mangahere.cc/manga/', '')
 
+def _get_current_progress(bs: Tag) -> Tuple[int, int]:
+    selector = bs.find_all('div', {'class': 'go_page clearfix'})[0].find_all('select')[1]
+    current = selector.find_all('option', {'selected': 'selected'})[0].text
+    last = [o for o in selector.children if type(o) is Tag and o.text != 'Featured'][-1].text
+    return int(current), int(last)
+
+def _get_image_link_and_next_page(bs: Tag) -> Tuple[str, str]:
+    section = bs.find_all('section', {'id': 'viewer'})[0]
+    if type(section) is not Tag:
+        return None, 'javascript:void(0);'
+    link = [x for x in section.children if x.name == 'a'][0]
+    if type(link) is not Tag:
+        return None, 'javascript:void(0);'
+    page_link = _extract_next_page_link(link['href'])
+    img_tag = link.find_all('img', {'id': 'image'})[0]
+    img = img_tag['src'] if type(img_tag) is Tag else None
+    return img_tag, page_link
+
 def _get_image_links(page_link: str) -> Generator:
+    progress_len = 0
     while page_link != 'javascript:void(0);':
         search_request = Request(
             'http://www.mangahere.cc/manga/' + page_link,
@@ -105,16 +124,14 @@ def _get_image_links(page_link: str) -> Generator:
         html_response = urlopen(search_request).read().decode('utf-8')
         bs = BS(html_response, 'html.parser')
         #
-        section = bs.find_all('section', {'id': 'viewer'})[0]
-        if type(section) is not Tag:
-            break
-        link = [x for x in section.children if x.name == 'a'][0]
-        if type(link) is not Tag:
-            break
-        page_link = _extract_next_page_link(link['href'])
-        img = link.find_all('img', {'id': 'image'})[0]
-        if type(img) is Tag:
+        img, page_link = _get_image_link_and_next_page(bs)
+        curr_p, all_p = _get_current_progress(bs)
+        sys.stdout.write('\b' * progress_len)
+        progress_len = sys.stdout.write("Progress: " + str(curr_p) + '/' + str(all_p))
+        sys.stdout.flush()
+        if img is not None:
             yield img['src']
+    print('', sep='\n')
 
 @preload_images
 @cached(domain='http://www.mangahere.cc/manga/')
