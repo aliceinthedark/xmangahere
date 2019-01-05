@@ -20,12 +20,18 @@ from base64 import b32decode, b32encode
 
 from typing import NoReturn, Callable, List
 
-HOME_DIR = os.path.expanduser('~')
-CACHE_DIR = HOME_DIR + '/.xmanga/cache/'
-IMAGE_DIR = HOME_DIR + '/.xmanga/images/'
+XMANGA_DIR = os.path.expanduser('~') + '/.xmanga'
+CACHE_DIR = XMANGA_DIR + '/cache/'
+IMAGE_DIR = XMANGA_DIR + '/images/'
+HISTORY_PATH = XMANGA_DIR + '/history'
 
 if not os.path.exists(CACHE_DIR):
     os.makedirs(CACHE_DIR)
+if not os.path.exists(IMAGE_DIR):
+    os.makedirs(IMAGE_DIR)
+if not os.path.exists(HISTORY_PATH):
+    with open(HISTORY_PATH, 'w') as f:
+        f.write('')
 
 def get_cached_path(link: str) -> str:
     return CACHE_DIR + b32encode(link.encode('utf-8')).decode('utf-8')
@@ -93,7 +99,28 @@ def _save_images(links: [str]) -> [str]:
     images = [_load_image(link) for link in links]
     return images
 
-def preload_images(fun: Callable[[List[str]], List[str]]) -> Callable[[List[str]], List[str]]:
+def preload_images(fun):
     def wrapper(links: List[str]) -> List[str]:
         return _save_images(fun(links))
     return wrapper
+
+def _get_history(count: int) -> [str]:
+    with open(HISTORY_PATH) as f:
+        return [e for e in f.read().split('\n') if e != ''][:count]
+
+def _save_history(history: [str], count: int) -> NoReturn:
+    history = [e for e in list(set(history)) if e != '']
+    with open(HISTORY_PATH, 'w') as f:
+        f.write('\n'.join(['-hist- ' + x.lstrip('+') for x in history[:count]]))
+
+def save_history(count: int = 10):
+    def constructor(fun):
+        def wrapper():
+            history = _get_history(count)
+            req = fun(history)
+            _save_history([req] + history, count)
+            if req.startswith('-hist- '):
+                req = req[len('-hist- '):]
+            return req
+        return wrapper
+    return constructor
