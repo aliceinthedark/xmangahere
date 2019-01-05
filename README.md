@@ -14,4 +14,4 @@ A client for mangahere.cc.
 
 # Running
 
-Just `git clone` this repo, `cd xmangahere` and run `./xmangahere` in your terminal.
+Just `git clone` this repo, `cd xmangahere` and run `./xmanga` in your terminal.
