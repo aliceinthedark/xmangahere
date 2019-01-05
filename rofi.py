@@ -16,10 +16,10 @@ from subprocess import Popen, PIPE
 
 from cache import save_history
 
-@save_history(count=10)
-def search_query(history: [str]) -> str:
+#@save_history(count=10)
+def search_query(history: [str] = []) -> str:
     history_len = len(history)
-    with Popen(['rofi', '-dmenu', '-lines', str(history_len if history_len < 10 else 10)], stdout=PIPE, stdin=PIPE) as menu:
+    with Popen(['rofi', '-dmenu', '-matching', 'normal', '-lines', str(history_len if history_len < 10 else 10)], stdout=PIPE, stdin=PIPE) as menu:
         with menu.stdin:
             menu.stdin.write('\n'.join(history).encode('utf-8'))
         return menu.stdout.read().decode('utf-8').replace('\n', '')

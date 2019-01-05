@@ -21,6 +21,11 @@ import feh
 
 from typing import NoReturn
 
+# cache browsing mode:
+# cached = [b32decode(x.encode('utf-8')).decode('utf-8') for x in os.listdir(CACHE_DIR)]
+# cached_with_l = [(len([y for y in x.split('/') if y != '']), x) for x in cached]
+#  -> [(l, x)], where x is a chapter list if l = 4 and is a page link list if l = 5 or 6
+
 def main() -> NoReturn:
     menu = rofi
     manga = mangahere

@@ -111,7 +111,12 @@ def _get_history(count: int) -> [str]:
 def _save_history(history: [str], count: int) -> NoReturn:
     history = [e for e in list(set(history)) if e != '']
     with open(HISTORY_PATH, 'w') as f:
-        f.write('\n'.join(['-hist- ' + x.lstrip('+') for x in history[:count]]))
+        def mark_hist(e: str) -> str:
+            if e.startswith('-hist- '):
+                return e
+            else:
+                return '-hist- ' + e
+        f.write('\n'.join([mark_hist(x) for x in history[:count]]))
 
 def save_history(count: int = 10):
     def constructor(fun):
