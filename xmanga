@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+#
+# This file is part of xmangahere project.
+#
+# Copyright (C) 2019 aliceinthedark <don't @ me>
+# All Rights Reserved
+# 
+# This program is free software. It comes without any warranty, to
+# the extent permitted by applicable law. You can redistribute it
+# and/or modify it under the terms of the Do What The Fuck You Want
+# To Public License, Version 2, as published by Sam Hocevar. See
+# LICENSE.md for more details.
+#
+
+# Current back-end for query menu.
+import rofi
+# Current back-end for manga downloads.
+import mangahere
+# Current page viewer.
+import feh
+
+from typing import NoReturn
+
+def main() -> NoReturn:
+    menu = rofi
+    manga = mangahere
+    viewer = feh
+    while True:
+        query = menu.search_query()
+        if query == '':
+            break
+        print("Searching for " + query + "...")
+        titles = manga.search(query)
+        while True:
+            title = menu.select_title(titles)
+            if title == '':
+                break
+            print("Loading volumes for " + title + "...")
+            volumes = manga.volumes(title)
+            while True:
+                volume = menu.select_volume(volumes)
+                if volume == '':
+                    break
+                print("Getting pages for " + volume + "...")
+                images = manga.pages(volume)
+                print("Done.")
+                viewer.show(images)
+
+if __name__ == '__main__':
+    main()

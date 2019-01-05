@@ -1,6 +1,5 @@
 # Emacs
 *~
 
-*.patch
-*.orig
-*.rej
+# Python
+__pycache__/
