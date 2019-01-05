@@ -15,6 +15,7 @@
 import os
 import os.path
 import sys
+from urllib.request import Request, urlopen
 from base64 import b32decode, b32encode
 
 from typing import NoReturn, Callable, List
@@ -60,7 +61,7 @@ def cached(domain: str = '/common/'):
             if _exists(link):
                 return _get(link)
             else:
-                cache = fun(link)
+                cache = fun(name)
                 _put(link, cache)
                 return cache
         return wrapper

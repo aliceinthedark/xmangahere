@@ -73,7 +73,7 @@ def _get_links(bs: Tag):
 @cached(domain='http://www.mangahere.cc/manga/')
 def volumes(title: str) -> [str]:
     search_request = Request(
-        'http://www.mangahere.cc/manga/' + title + '/',
+        'http://www.mangahere.cc/manga/' + title,
         data=None,
         headers={
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'
