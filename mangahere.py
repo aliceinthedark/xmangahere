@@ -12,7 +12,7 @@
 # LICENSE for more details.
 #
 
-from typing import Generator, Tuple
+from typing import Generator, Tuple, List, Dict
 
 import os
 import os.path
@@ -29,18 +29,14 @@ from cache import cached, preload_images
 # Search.
 #
 
-def _extract_title_from_link(link: str) -> str:
-    # link has a format of (as of 2019/01/03):
-    # `//www.mangahere.cc/manga/title/`
-    return link.split('/')[-2]
-
 def _get_titles(bs: Tag) -> Generator:
     for result in bs.find_all('div', {'class': 'result_search'})[0]:
         if type(result) is Tag and result.dt is not None:
             link = result.dt.a['href']
-            yield _extract_title_from_link(link)
+            title = result.dt.a.string
+            yield link, title
 
-def search(query: str) -> [str]:
+def search(query: str) -> List[Dict[str, str]]:
     search_request = Request(
         'http://www.mangahere.cc/search.php?' + urlencode({'name': query}),
         data=None,
@@ -50,16 +46,11 @@ def search(query: str) -> [str]:
     )
     html_response = urlopen(search_request).read().decode('utf-8')
     bs = BS(html_response, 'html.parser')
-    return list(_get_titles(bs))
+    return [{'link': l, 'title': t} for l, t in _get_titles(bs)]
 
 #
 # Volumes.
 #
-
-def _extract_title_from_link(link: str) -> str:
-    # Link has a format of (as of 2019/01/03):
-    # `//www.mangahere.cc/manga/<useful data>`
-    return link.replace('//www.mangahere.cc/manga/', '')
 
 def _get_links(bs: Tag):
     for result in bs.find_all('div', {'class': 'detail_list'})[0].find_all('ul')[0]:
@@ -68,12 +59,13 @@ def _get_links(bs: Tag):
             span = result.find_all('span', {'class': 'left'})[0]
             if type(span) is Tag:
                 link = span.a['href']
-                yield _extract_title_from_link(link)
+                title = span.a.string.replace('\n', '')
+                yield link, title
 
-@cached(domain='http://www.mangahere.cc/manga/')
+#@cached(domain='http://www.mangahere.cc/manga/')
 def volumes(title: str) -> [str]:
     search_request = Request(
-        'http://www.mangahere.cc/manga/' + title,
+        'http:' + title,
         data=None,
         headers={
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'
@@ -82,7 +74,7 @@ def volumes(title: str) -> [str]:
     html_response = urlopen(search_request).read().decode('utf-8')
     bs = BS(html_response, 'html.parser')
     # Save links in cache.
-    return list(_get_links(bs))
+    return [{'link': l, 'title': t} for l, t in _get_links(bs)]
 
 #
 # Page links.
@@ -106,7 +98,7 @@ def _get_image_link_and_next_page(bs: Tag) -> Tuple[str, str]:
     link = [x for x in section.children if x.name == 'a'][0]
     if type(link) is not Tag:
         return None, 'javascript:void(0);'
-    page_link = _extract_next_page_link(link['href'])
+    page_link = link['href'] # _extract_next_page_link(link['href'])
     img_tag = link.find_all('img', {'id': 'image'})[0]
     img = img_tag['src'] if type(img_tag) is Tag else None
     return img_tag, page_link
@@ -115,7 +107,8 @@ def _get_image_links(page_link: str) -> Generator:
     progress_len = 0
     while page_link != 'javascript:void(0);':
         search_request = Request(
-            'http://www.mangahere.cc/manga/' + page_link,
+            #'http://www.mangahere.cc/manga/' + page_link,
+            'http:' + page_link,
             data=None,
             headers={
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'
@@ -132,6 +125,8 @@ def _get_image_links(page_link: str) -> Generator:
         if img is not None:
             yield img['src']
     print('', sep='\n')
+
+
 
 @preload_images
 @cached(domain='http://www.mangahere.cc/manga/')

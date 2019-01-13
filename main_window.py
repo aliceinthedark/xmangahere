@@ -13,7 +13,7 @@
 #
 
 import sys
-from typing import List, NoReturn
+from typing import List, Dict, NoReturn, Any
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QImage, QImageReader, QPixmap, QKeyEvent
@@ -37,60 +37,34 @@ import mangahere
 from cache import IMAGE_DIR
 
 from search_widget import SearchWidget
+from title_viewer import TitleViewer
 from image_viewer import ImageViewer
 
 class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self._widgetList = [SearchWidget, TitleViewer, ImageViewer]
         self.__createWidgets()
-        self.__createConnections()
 
     def __createWidgets(self):
         self._stack = QStackedWidget()
         #
-        def goToViewer(chapter: str) -> NoReturn:
-            print("Getting pages for " + chapter + "...")
-            self.setWindowTitle(self.windowTitle() + chapter)
-            pages = mangahere.pages(chapter)
-            print('\n'.join(pages))
-            print("Done.")
-            viewer = ImageViewer()
-            def back():
-                self._stack.setCurrentIndex(2)
-                self._stack.removeWidget(viewer)
-            viewer._onExit = back
-            self._stack.addWidget(viewer)
-            self._stack.setCurrentIndex(3)
-            viewer.addImages(pages)
-        def goToChapters(title: str) -> NoReturn:
-            print("Getting chapters for " + title + "...")
-            self.setWindowTitle(title)
-            chapters = mangahere.volumes(title)
-            print("Got: " + ", ".join(chapters))
-            w = SearchWidget(options=chapters, onSelect=goToViewer)
-            def back() -> NoReturn:
-                self._stack.setCurrentIndex(1)
-                self._stack.removeWidget(w)
-            w.onBack = back
-            self._stack.addWidget(w)
-            self._stack.setCurrentIndex(2)
-        def goToTitles(queue: str) -> NoReturn:
-            print("Searching for " + queue + "...")
-            self.setWindowTitle("Search: " + queue)
-            titles = mangahere.search(queue)
-            print("Got: " + ", ".join(titles))
-            w = SearchWidget(options=titles, onSelect=goToChapters)
-            def back() -> NoReturn:
-                self._stack.setCurrentIndex(0)
-                self._stack.removeWidget(w)
-            w.onBack = back
-            self._stack.addWidget(w)
-            self._stack.setCurrentIndex(1)
         self.setWindowTitle("Cute Manga")
-        self._stack.addWidget(SearchWidget(onSelect=goToTitles, onBack=lambda: sys.exit(0)))
+        self._stack.addWidget(SearchWidget(parent=self, backEnd=mangahere))
         #
         self.setCentralWidget(self._stack)
 
-    def __createConnections(self):
-        pass
+    def goBack(self) -> NoReturn:
+        ci = self._stack.currentIndex()
+        if ci == 0:
+            sys.exit(0)
+        else:
+            cw = self._stack.currentWidget()
+            self._stack.setCurrentIndex(ci - 1)
+            self._stack.removeWidget(cw)
+
+    def goTo(self, widget: QWidget) -> NoReturn:
+        ci = self._stack.currentIndex()
+        self._stack.addWidget(widget)
+        self._stack.setCurrentIndex(ci + 1)

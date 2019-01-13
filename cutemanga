@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import QApplication
 
 from main_window import MainWindow
 
-def test() -> NoReturn:
+def main() -> NoReturn:
     app = QApplication([])
     window = MainWindow()
     window.show()
@@ -36,5 +36,5 @@ if __name__ == '__main__':
     # import os
     # images = ['/home/andi/.xmanga/images/' + i for i in os.listdir('/home/andi/.xmanga/images')][:10]
     # testViewer(images)
-    test()
+    main()
 

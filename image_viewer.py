@@ -14,7 +14,7 @@
 
 from typing import List, NoReturn
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QObject, QThread, pyqtSlot, pyqtSignal
 from PyQt5.QtGui import QImage, QImageReader, QPixmap, QKeyEvent, QResizeEvent
 from PyQt5.QtWidgets import (
     QWidget,
@@ -35,16 +35,59 @@ def _loadQtImage(path: str) -> QImage:
     else:
         return None
 
+
+class ImageLoader(QObject):
+
+    sig_done = pyqtSignal()
+
+    def __init__(self, backEnd, volume: str):
+        super().__init__()
+        self.__backEnd = backEnd
+        self.__volume = volume
+        self.__result = None
+
+    @property
+    def result(self):
+        return self.__result
+
+    @pyqtSlot()
+    def work(self):
+        self.__result = self.__backEnd.pages(self.__volume)
+        self.sig_done.emit()
+
+class ViewerModel(QObject):
+
+    def __init__(self, volume: str, backEnd, viewer: QWidget):
+        super().__init__()
+        self.__backEnd = backEnd
+        self.__viewer = viewer
+        self.__worker = ImageLoader(backEnd, volume)
+        self.__thread = QThread()
+        self.__worker.moveToThread(self.__thread)
+        self.__worker.sig_done.connect(self.__updateView)
+        self.__thread.started.connect(self.__worker.work)
+        self.__thread.start()
+
+    @pyqtSlot()
+    def __updateView(self):
+        results = self.__worker.result
+        self.__viewer.addImages(results)
+
+    @property
+    def backEnd(self):
+        return self.__backEnd
+
 class ImageViewer(QWidget):
 
-    def __init__(self, onExit=lambda: None):
-        super().__init__()
+    def __init__(self, volumeLink: str, backEnd, parent: QWidget = None):
+        super().__init__(parent=parent)
+        self._parent = parent
         self._images = []
         self._zoomRatio = 1
-        self._onExit = onExit
         #
         self._currentIndex = 0
         self.__createWidgets()
+        self._model = ViewerModel(volumeLink, backEnd, self)
         self.__createConnections()
 
     def __createWidgets(self) -> NoReturn:
@@ -103,7 +146,7 @@ class ImageViewer(QWidget):
         elif keyEvent.key() == Qt.Key_Minus:
             self.__zoomOut()
         elif keyEvent.key() == Qt.Key_Q or keyEvent.key() == Qt.Key_Escape:
-            self._onExit()
+            self._parent.goBack()
         elif keyEvent.key() == Qt.Key_J:
             sb = self._scroll.verticalScrollBar()
             sb.setValue(sb.value() + 30)
