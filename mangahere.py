@@ -12,7 +12,7 @@
 # LICENSE for more details.
 #
 
-from typing import Generator, Tuple, List, Dict
+from typing import Iterator, Tuple, List, Dict, Any
 
 import os
 import os.path
@@ -29,7 +29,7 @@ from cache import cached, preload_images
 # Search.
 #
 
-def _get_titles(bs: Tag) -> Generator:
+def _get_titles(bs: Tag) -> Iterator[str]:
     for result in bs.find_all('div', {'class': 'result_search'})[0]:
         if type(result) is Tag and result.dt is not None:
             link = result.dt.a['href']
@@ -52,20 +52,45 @@ def search(query: str) -> List[Dict[str, str]]:
 # Volumes.
 #
 
-def _get_links(bs: Tag):
+def _get_cover_link(bs: Tag) -> str:
+    top = bs.find_all('div', {'class': 'manga_detail_top'})[0]
+    img = top.find_all('img', {'class': 'img'})[0]
+    # 206x292
+    return img['src']
+
+def _get_details(bs: Tag) -> Dict[str, Any]:
+    top = bs.find_all('div', {'class': 'manga_detail_top'})[0]
+    info = {}
+    def tag_is_valid(x: Tag) -> bool:
+        return (type(x) is Tag and
+            'class' not in x.attrs and #('class' in x and x['class'] != 'posR' or 'class' not in x) and \
+            'id' not in x.attrs) #('id' in x and x['id'] != 'rate' or 'id' not in x)
+    for li in top.find_all('ul', {'class': 'detail_topText'})[0].children:
+        if tag_is_valid(li):
+            label = li.label
+            if label.h2 != None:
+                label.h2.replace_with('')
+            label = label.get_text().replace(':', '').strip()
+            li.label.replace_with('')
+            content = li.get_text().strip()
+            info[label] = content
+    return info
+
+def _get_links(bs: Tag) -> Iterator[Dict[str, Any]]:
     for result in bs.find_all('div', {'class': 'detail_list'})[0].find_all('ul')[0]:
         # Results are <li> tags.
         if type(result) is Tag:
             span = result.find_all('span', {'class': 'left'})[0]
             if type(span) is Tag:
                 link = span.a['href']
-                title = span.a.string.replace('\n', '')
+                title = span.a.string.replace('\n', '').strip()
                 yield link, title
 
 #@cached(domain='http://www.mangahere.cc/manga/')
 def volumes(title: str) -> [str]:
+    title = title if title.startswith('http') else 'http:' + title
     search_request = Request(
-        'http:' + title,
+        title,
         data=None,
         headers={
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'
@@ -73,8 +98,11 @@ def volumes(title: str) -> [str]:
     )
     html_response = urlopen(search_request).read().decode('utf-8')
     bs = BS(html_response, 'html.parser')
-    # Save links in cache.
-    return [{'link': l, 'title': t} for l, t in _get_links(bs)]
+    #
+    img = _get_cover_link(bs)
+    info = _get_details(bs)
+    chapters = [{'link': l, 'title': t} for l, t in _get_links(bs)]
+    return {'cover': img, 'info': info, 'chapters': chapters}
 
 #
 # Page links.
@@ -103,7 +131,7 @@ def _get_image_link_and_next_page(bs: Tag) -> Tuple[str, str]:
     img = img_tag['src'] if type(img_tag) is Tag else None
     return img_tag, page_link
 
-def _get_image_links(page_link: str) -> Generator:
+def _get_image_links(page_link: str) -> Iterator[str]:
     progress_len = 0
     while page_link != 'javascript:void(0);':
         search_request = Request(

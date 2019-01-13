@@ -55,27 +55,6 @@ class ImageLoader(QObject):
         self.__result = self.__backEnd.pages(self.__volume)
         self.sig_done.emit()
 
-class ViewerModel(QObject):
-
-    def __init__(self, volume: str, backEnd, viewer: QWidget):
-        super().__init__()
-        self.__backEnd = backEnd
-        self.__viewer = viewer
-        self.__worker = ImageLoader(backEnd, volume)
-        self.__thread = QThread()
-        self.__worker.moveToThread(self.__thread)
-        self.__worker.sig_done.connect(self.__updateView)
-        self.__thread.started.connect(self.__worker.work)
-        self.__thread.start()
-
-    @pyqtSlot()
-    def __updateView(self):
-        results = self.__worker.result
-        self.__viewer.addImages(results)
-
-    @property
-    def backEnd(self):
-        return self.__backEnd
 
 class ImageViewer(QWidget):
 
@@ -84,10 +63,12 @@ class ImageViewer(QWidget):
         self._parent = parent
         self._images = []
         self._zoomRatio = 1
+        self.__volumeLink = volumeLink
+        self.__backEnd = backEnd
         #
         self._currentIndex = 0
         self.__createWidgets()
-        self._model = ViewerModel(volumeLink, backEnd, self)
+        self.__loadPages()
         self.__createConnections()
 
     def __createWidgets(self) -> NoReturn:
@@ -122,6 +103,19 @@ class ImageViewer(QWidget):
         l.addWidget(self._bar)
         l.addWidget(self._scroll)
         self.setLayout(l)
+
+    def __loadPages(self) -> NoReturn:
+        self.__imageLoader = ImageLoader(self.__backEnd, self.__volumeLink)
+        self.__thread = QThread()
+        self.__imageLoader.moveToThread(self.__thread)
+        self.__imageLoader.sig_done.connect(self.__updatePages)
+        self.__thread.started.connect(self.__imageLoader.work)
+        self.__thread.start()
+
+    @pyqtSlot()
+    def __updatePages(self):
+        results = self.__imageLoader.result
+        self.addImages(results)
 
     def __createConnections(self) -> NoReturn:
         self._nextButton.setFocusProxy(self)
